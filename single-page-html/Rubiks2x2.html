@@ -1,0 +1,995 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Rubiks 2x2</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+      integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+      crossorigin="anonymous"
+      defer></script>
+    <script>
+	
+document.addEventListener('DOMContentLoaded', () => main());	
+	
+let bFreeze = false;
+let xrot = 0.0;
+let yrot = 0.0;
+let zrot = 0.0;
+let cubeRotation = 0.0;
+let presentationRotation = 0;
+let deltaTime = 0;
+let presentCube = false;
+let presentLeft = false;
+let then = 0;
+
+let highlightedCube = 0;
+let highlightedCubeCorner = 0;
+let CurrentSolutionText = '';
+
+
+let CubeCornerPieces = [1, 2, 3, 4, 5, 6, 7, 8];
+
+window.onFlipChange = function onFlipChange(ix, ctlSelect)
+{
+	if (ix == 5)
+	{
+		return;
+	}
+		
+	CubeCornerFlips[ix - 1] = ctlSelect.value;
+	printSolution();
+}
+
+let CubeCornerFlips = [1, 1, 1, 1, 1, 1, 1, 1];
+
+function UpdateSolution()
+{
+	let CubeToSolve = [];
+	for (var ix = 0; ix < 8; ix++)
+	{
+		let CornerPiece = CubeCornerPieces[ix];
+		let CornerFlip = CubeCornerFlips[ix];
+		CubeToSolve.push(CornerPiece * 10 + CornerFlip);
+	}
+	let Solution = solveRubiks2x2(CubeToSolve);
+	if (Solution != null)
+	{
+		CurrentSolutionText = Solution.join();
+	}
+	else
+	{
+		CurrentSolutionText = 'There is no solution - cube is not possible';
+	}
+		
+}
+
+function main() {
+  const canvas = document.querySelector("#glcanvas");
+  // Initialize the GL context
+  const gl = canvas.getContext("webgl");
+
+  const textCanvas = document.querySelector("#text");
+  const ctx2d = textCanvas.getContext("2d");
+  
+  textCanvas.addEventListener('mousemove', function (event) {
+	highlightedCube = 0;
+	highlightedCubeCorner = 0;
+	 if ((event.clientY > 80) && (event.clientY < 200))
+	 {
+	    let xpos = Math.round((15 * (event.clientX - 60))  / (1024 - (60*2)));
+		if ((xpos % 2) == 1)
+		{
+			let cubeId = (xpos + 1) / 2;
+			if (cubeId != 5)
+			{
+				if (event.clientY < 130)
+				{
+					highlightedCubeCorner = cubeId;
+				}
+				else
+				{
+					highlightedCube = cubeId;
+				}
+			}
+		}
+	 }
+  });
+
+  textCanvas.addEventListener('mousedown', function (event) {
+	 if ((highlightedCube == 0) && (highlightedCubeCorner == 0))
+	 {
+		presentCube = true;
+		presentLeft = event.clientX < 512;
+		presentationRotation = 0;
+	 }
+	 else
+	 {
+		 if (highlightedCube != 0)
+		 {
+			 // Cycle chosen  piece of highlighted cube...
+			 let idCube = CubeCornerPieces[highlightedCube - 1];
+			 idCube++;
+			 if (idCube > 8)
+			 {
+				 idCube = 1;
+			 }
+			 CubeCornerPieces[highlightedCube - 1] = idCube;
+			 UpdateSolution();
+		 }
+		 else // (i.e. highlightedCubeCorner != 0
+		 {
+			 // Cycle chosen  piece of highlighted cube...
+			 let idRotation = CubeCornerFlips[highlightedCubeCorner - 1];
+			 idRotation++;
+			 if (idRotation > 3)
+			 {
+				 idRotation = 1;
+			 }
+			 CubeCornerFlips[highlightedCubeCorner - 1] = idRotation;
+			 UpdateSolution();
+		 }
+	 }
+  });
+  
+
+  // Only continue if WebGL is available and working
+  if (gl === null) {
+    alert(
+      "Unable to initialize WebGL. Your browser or machine may not support it."
+    );
+    return;
+  }
+
+  // Set clear color to black, fully opaque
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  // Clear the color buffer with specified clear color
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  
+// Vertex shader program
+const vsSource = `
+    attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
+
+    uniform mat4 uModelViewMatrix;
+    uniform mat4 uProjectionMatrix;
+
+    varying lowp vec4 vColor;
+
+    void main(void) {
+      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      vColor = aVertexColor;
+    }
+  `;
+
+// Fragment shader program
+
+const fsSource = `
+    varying lowp vec4 vColor;
+
+    void main(void) {
+      gl_FragColor = vColor;
+    }
+  `;
+  
+  
+const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+
+
+// Collect all the info needed to use the shader program.
+// Look up which attributes our shader program is using
+// for aVertexPosition, aVertexColor and also
+// look up uniform locations.
+const programInfo = {
+  program: shaderProgram,
+  attribLocations: {
+    vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+    vertexColor: gl.getAttribLocation(shaderProgram, "aVertexColor"),
+  },
+  uniformLocations: {
+    projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
+    modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+  },
+};
+
+// Here's where we call the routine that builds all the
+// objects we'll be drawing.
+const buffers = initBuffers(gl);
+
+
+// Draw the scene repeatedly
+function render(now) {
+  now *= 0.001; // convert to seconds
+  deltaTime = now - then;
+  then = now;
+  drawScene(gl, ctx2d, programInfo, buffers, presentationRotation, presentLeft, highlightedCube, highlightedCubeCorner, CubeCornerPieces, CubeCornerFlips, CurrentSolutionText);
+  if (presentCube)
+  {
+      presentationRotation += (deltaTime * 2.5);
+	  if (presentationRotation > 2 * Math.PI)
+	  {
+		  presentCube = false;
+		  presentationRotation = 0;
+	  }
+	  
+  }
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+}
+
+//
+// Initialize a shader program, so WebGL knows how to draw our data
+//
+function initShaderProgram(gl, vsSource, fsSource) {
+  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+  // Create the shader program
+
+  const shaderProgram = gl.createProgram();
+  gl.attachShader(shaderProgram, vertexShader);
+  gl.attachShader(shaderProgram, fragmentShader);
+  gl.linkProgram(shaderProgram);
+
+  // If creating the shader program failed, alert
+
+  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    alert(
+      `Unable to initialize the shader program: ${gl.getProgramInfoLog(
+        shaderProgram
+      )}`
+    );
+    return null;
+  }
+
+  return shaderProgram;
+}
+
+//
+// creates a shader of the given type, uploads the source and
+// compiles it.
+//
+function loadShader(gl, type, source) {
+  const shader = gl.createShader(type);
+
+  // Send the source to the shader object
+
+  gl.shaderSource(shader, source);
+
+  // Compile the shader program
+
+  gl.compileShader(shader);
+
+  // See if it compiled successfully
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    alert(
+      `An error occurred compiling the shaders: ${gl.getShaderInfoLog(shader)}`
+    );
+    gl.deleteShader(shader);
+    return null;
+  }
+
+  return shader;
+}
+
+function initBuffers(gl) {
+  vertices = vertices;
+  positionBuffer = initPositionBuffer(gl);
+  const colorBuffer = initColorBuffer(gl);
+const indexBuffer = initIndexBuffer(gl);
+
+return {
+  vertices: vertices,
+  position: positionBuffer,
+  color: colorBuffer,
+  indices: indexBuffer,
+};
+
+}
+
+let vertices = null;
+let positionBuffer = null;
+
+function initPositionBuffer(gl) {
+  // Create a buffer for the 8 cube's positions.
+  positionBuffer = gl.createBuffer();
+
+  // Select the positionBuffer as the one to apply buffer
+  // operations to from here out.
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+const gap = 0.07;
+const sidelength = (2 - 3*gap) / 2;
+const pA = -1.0;
+const pB = pA + gap;
+const pC = pB + sidelength;
+const pD = pC + gap;
+const pE = pD + sidelength;
+const pF = pE + gap;
+
+
+vertices = [
+  // Top face
+  pD, pF, pD, pE, pF, pD, pE, pF, pE, pD, pF, pE,
+
+  // Front face
+  pD, pD, pF, pE, pD, pF, pE, pE, pF, pD, pE, pF,
+
+  // Right face
+  pF, pD, pD, pF, pE, pD, pF, pE, pE, pF, pD, pE
+                                      
+];
+
+  // Now pass the list of vertices into WebGL to build the
+  // shape. We do this by creating a Float32Array from the
+  // JavaScript array, then use it to fill the current buffer.
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+  //gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
+
+  return positionBuffer;
+}
+
+function initColorBuffer(gl) {
+	
+const faceColors = {
+  r : [0.9, 0.2, 0.2, 0.7], // Front face: red
+  o : [0.9, 0.5, 0.2, 0.7], // Back face: orange
+  w : [0.9, 0.9, 0.9, 0.7], // Top face: white
+  y : [0.9, 0.9, 0.2, 0.7], // Bottom face: yellow
+  b : [0.2, 0.2, 0.9, 0.7], // Right face: blue
+  g : [0.2, 0.9, 0.2, 0.7], // Left face: green
+  u : [1.0, 1.0, 1.0, 0.1],  // Unselected face: grey
+  h : [1.0, 1.0, 1.0, 0.4]  // Highlighted face: grey
+};
+
+const cubeCornerColours = [
+  faceColors.y, faceColors.b, faceColors.r,
+  faceColors.y, faceColors.o, faceColors.b,
+  faceColors.y, faceColors.r, faceColors.g,
+  faceColors.y, faceColors.g, faceColors.o,
+  faceColors.w, faceColors.r, faceColors.b,
+  faceColors.w, faceColors.b, faceColors.o,
+  faceColors.w, faceColors.g, faceColors.r,
+  faceColors.w, faceColors.o, faceColors.g,
+  faceColors.u, faceColors.u, faceColors.u,
+  faceColors.h, faceColors.h, faceColors.h
+];
+  
+// Convert the array of colors into a table for all the vertices.
+var colors = [];
+for (var j = 0; j < cubeCornerColours.length; ++j) {
+  const c = cubeCornerColours[j];
+  // Repeat each color four times for the four vertices of the face
+  colors = colors.concat(c, c, c, c);
+}
+
+ const colorBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+  return colorBuffer;
+
+}
+
+function initIndexBuffer(gl) {
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  // This array defines each face as two triangles, using the
+  // indices into the vertex array to specify each triangle's
+  // position.
+
+  const indices = [
+    0 + 0,
+    0 + 1,
+    0 + 2,
+    0 + 0,
+    0 + 2,
+    0 + 3,
+
+    4 + 0,
+    4 + 1,
+    4 + 2,
+    4 + 0,
+    4 + 2,
+    4 + 3,
+
+    8 + 0,
+    8 + 1,
+    8 + 2,
+    8 + 0,
+    8 + 2,
+    8 + 3
+  ];
+
+  // Now send the element array to GL
+
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(indices),
+    gl.STATIC_DRAW
+  );
+
+  return indexBuffer;
+}
+
+function drawScene(gl, ctx2d, programInfo, buffers, presentationRotation, presentLeft, highlightedCube, highlightedCubeCorner, lCorners, lFlips, CurrentSolutionText) {
+
+  ctx2d.clearRect(0, 0, ctx2d.canvas.width, ctx2d.canvas.height);
+  ctx2d.font = "bold 24px verdana, sans-serif ";
+  const CornerPieceTexts = [['Y','B','R'], ['Y','O','B'], ['Y','R','G'], ['Y','G','O'], ['W','R','B'], ['W','B','O'], ['W','G','R'], ['W','O','G']];
+  for (let ixCube = 1; ixCube <= 8; ixCube++)
+  {
+	  ctx2d.fillStyle = highlightedCubeCorner == ixCube ? "#ffeedd" : "#887766";
+	  let idRotation = lFlips[ixCube - 1];
+	  let ix1 = idRotation == 1 ? 0 : idRotation == 2 ? 1 : 2;
+	  let ix2 = idRotation == 1 ? 1 : idRotation == 2 ? 2 : 0;
+	  let ix3 = idRotation == 1 ? 2 : idRotation == 2 ? 0 : 1;
+	  let idCornerCube = lCorners[ixCube - 1];
+	  let lCornerTexts = CornerPieceTexts[idCornerCube - 1];
+	  let Text1 = lCornerTexts[ix1];
+	  let Text2 = lCornerTexts[ix2];
+	  let Text3 = lCornerTexts[ix3];
+	  let strText = "" + Text1 + Text2 + Text3;
+	  let xTextPos = ((-1 + ixCube * 2) * (1024 - (60 * 2)) / 15);
+      ctx2d.fillText(strText, xTextPos, 100);
+  }
+  
+  ctx2d.fillStyle = "#ffeedd";
+  ctx2d.fillText(CurrentSolutionText, 50, 750);
+	
+
+	
+	
+  gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
+  gl.clearDepth(1.0); // Clear everything
+  gl.enable(gl.DEPTH_TEST); // Enable depth testing
+  gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  // Clear the canvas before we start drawing on it.
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  // Create a perspective matrix, a special matrix that is
+  // used to simulate the distortion of perspective in a camera.
+  // The field of view is 45 degrees, with a width/height
+  // ratio that matches the display size of the canvas
+  // and we only want to see objects between 0.1 units
+  // and 100 units away from the camera.
+
+  const fieldOfView = (45 * Math.PI) / 180; // in radians
+  const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+  const zNear = 0.1;
+  const zFar = 100.0;
+  const projectionMatrix = mat4.create();
+
+  // note: glmatrix.js always has the first argument
+  // as the destination to receive the result.
+  mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+  // Set the drawing position to the "identity" point, which is
+  // the center of the scene.
+  const modelViewMatrix = mat4.create();
+
+  // Now move the drawing position a bit to where we want to
+  // start drawing the square.
+  mat4.translate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to translate
+    [-0.0, -0.5, -6.0]
+  ); // amount to translate
+
+  mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    presentationRotation, // amount to rotate in radians
+    presentLeft ? [1, 1, 1] : [-1, -1, 1]
+  ); // axis to rotate around (diagonal from origo to a corner on left/right side)
+
+  mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    Math.PI, // amount to rotate in radians
+    [0, 1, 0]
+  ); // axis to rotate around (diagonal from origo to a corner on left/right side)
+
+
+  // Tell WebGL how to pull out the positions from the position
+  // buffer into the vertexPosition attribute.
+  setPositionAttribute(gl, buffers, programInfo);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+
+  // Tell WebGL to use our program when drawing
+  gl.useProgram(programInfo.program);
+
+  // Set the shader uniforms
+  gl.uniformMatrix4fv(
+    programInfo.uniformLocations.projectionMatrix,
+    false,
+    projectionMatrix
+  );
+  gl.uniformMatrix4fv(
+    programInfo.uniformLocations.modelViewMatrix,
+    false,
+    modelViewMatrix
+  );
+
+  for (let ixCorner = 1; ixCorner <= 8; ixCorner++)
+  {
+      drawCorner(gl, buffers, programInfo, lCorners[ixCorner - 1], lFlips[ixCorner - 1], ixCorner, modelViewMatrix);
+  }
+
+  for (let ixCornerPiece = 1; ixCornerPiece <= 8; ixCornerPiece++)
+  {
+      drawCornerPiece(gl, buffers, programInfo, ixCornerPiece, lCorners[ixCornerPiece - 1], lFlips[ixCornerPiece - 1],  presentationRotation, presentLeft, highlightedCube);
+  }
+
+}
+
+// idCorner = One of 1,8
+// idCornerRotation = One of 1,2,3
+// ixCorner = One of 1,8 based on the 8 positions of the Rubiks
+function drawCorner(gl, buffers, programInfo, idCorner, idCornerRotation, ixCorner, modelViewMatrix)
+{
+  setColorAttribute(gl, buffers, programInfo, idCorner - 1);
+  const destMatrix = mat4.create();
+
+  // Then use x rotation (in GL, first is last...)
+  let x = (ixCorner > 4) ? 2 : 0; // Flip to bottom if position is bottom half
+  mat4.rotate(
+    destMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    x * 0.5 * Math.PI, // amount to rotate in radians
+    [1, 0, 0] // axis to rotate around (X)
+  );
+
+  // First use y rotation (in GL, first is last...
+  let y = ((ixCorner == 2) | (ixCorner == 8)) ? 1 : ((ixCorner == 3) || (ixCorner == 5)) ? -1 : ((ixCorner == 4) || (ixCorner == 6)) ? 2 : 0;
+  mat4.rotate(
+   destMatrix, // destination matrix
+   destMatrix, // matrix to rotate
+   -Math.PI * 0.5 * y, // amount to rotate in radians
+   [0, 1, 0]  // axis to rotate around (Y)
+  ); 
+
+  // Flip corners if required
+  let flip = (idCornerRotation == 2) ? -1 : (idCornerRotation == 3) ? 1 : 0;
+  mat4.rotate(
+   destMatrix, // destination matrix
+   destMatrix, // matrix to rotate
+   Math.PI * 2 / 3 * flip , // amount to rotate in radians
+   [1, 1, 1]  // axis to rotate around (origo to top corner)
+  ); 
+
+  gl.uniformMatrix4fv(
+    programInfo.uniformLocations.modelViewMatrix,
+    false,
+    destMatrix
+  );
+
+  const vertexCount = 3 * 2 * 3; // Number of squares x 2 triangles/square x 3 vertices/triangle
+  const type = gl.UNSIGNED_SHORT;
+  const offset = 0;
+  gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+}
+
+// ixCornerPiece = One of 1,8 - drawing the piece on the big cube.
+// idSelectedPiece = Id of selected corner piece (1/8)
+// ixCorner = One of 1,8 based on the 8 positions of the Rubiks
+function drawCornerPiece(gl, buffers, programInfo, ixCornerPiece, idSelectedPiece, idSelectedRotation, presentationRotation, presentLeft, highlightedCube)
+{
+  const modelViewMatrix = mat4.create();
+
+  // Now move the drawing position a bit to where we want to
+  // start drawing the square.
+  mat4.translate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to translate
+    [(ixCornerPiece - 4.5) * 5, 10, -40.0]
+  ); // amount to translate
+
+  mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    presentationRotation, // amount to rotate in radians
+    presentLeft ? [1, 1, 1] : [-1, -1, 1]
+  ); // axis to rotate around (diagonal from origo to a corner)
+
+  mat4.rotate(
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    Math.PI, // amount to rotate in radians
+    [0, 1, 0]
+  ); // axis to rotate around (diagonal from origo to a corner on left/right side)
+	
+  for (let ix = 1; ix <= 8; ix++)
+  {
+	  drawCornerPieceFace(gl, buffers, programInfo, ixCornerPiece, idSelectedPiece, ix, idSelectedRotation, highlightedCube, modelViewMatrix);
+  }
+}
+
+
+// idCorner = One of 1,8
+// idCornerRotation = One of 1,2,3
+// ixCorner = One of 1,8 based on the 8 positions of the Rubiks
+function drawCornerPieceFace(gl, buffers, programInfo, ixCornerPiece, idSelectedPiece, ixCubePosition, idCornerRotation, highlightedCube, modelViewMatrix)
+{
+  //setColorAttribute(gl, buffers, programInfo, ixCornerPiece);
+  setColorAttribute(gl, buffers, programInfo, ixCornerPiece == ixCubePosition ? idSelectedPiece - 1: (ixCornerPiece == highlightedCube) ? 9 : 8);
+  const destMatrix = mat4.create();
+
+  // Then use x rotation (in GL, first is last...)
+  let x = (ixCubePosition > 4) ? 2 : 0; // Flip to bottom if position is bottom half
+  mat4.rotate(
+    destMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    x * 0.5 * Math.PI, // amount to rotate in radians
+    [1, 0, 0] // axis to rotate around (X)
+  );
+
+  // First use y rotation (in GL, first is last...
+  let y = ((ixCubePosition == 2) | (ixCubePosition == 8)) ? 1 : ((ixCubePosition == 3) || (ixCubePosition == 5)) ? -1 : ((ixCubePosition == 4) || (ixCubePosition == 6)) ? 2 : 0;
+  mat4.rotate(
+   destMatrix, // destination matrix
+   destMatrix, // matrix to rotate
+   -Math.PI * 0.5 * y, // amount to rotate in radians
+   [0, 1, 0]  // axis to rotate around (Y)
+  ); 
+
+  // Flip corners if required
+  let flip = (idCornerRotation == 2) ? -1 : (idCornerRotation == 3) ? 1 : 0;
+  mat4.rotate(
+   destMatrix, // destination matrix
+   destMatrix, // matrix to rotate
+   Math.PI * 2 / 3 * flip , // amount to rotate in radians
+   [1, 1, 1]  // axis to rotate around (origo to top corner)
+  ); 
+
+  gl.uniformMatrix4fv(
+    programInfo.uniformLocations.modelViewMatrix,
+    false,
+    destMatrix
+  );
+
+  const vertexCount = 3 * 2 * 3; // Number of squares x 2 triangles/square x 3 vertices/triangle
+  const type = gl.UNSIGNED_SHORT;
+  const offset = 0;
+  gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+}
+
+
+
+
+
+// Tell WebGL how to pull out the positions from the position
+// buffer into the vertexPosition attribute.
+function setPositionAttribute(gl, buffers, programInfo) {
+  const numComponents = 3; // pull out 2 values per iteration
+  const type = gl.FLOAT; // the data in the buffer is 32bit floats
+  const normalize = false; // don't normalize
+  const stride = 0; // how many bytes to get from one set of values to the next
+  // 0 = use type and numComponents above
+  const offset = 0; // how many bytes inside the buffer to start from
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+  gl.vertexAttribPointer(
+    programInfo.attribLocations.vertexPosition,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset
+  );
+  gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
+// Tell WebGL how to pull out the colors from the color buffer
+// into the vertexColor attribute.
+function setColorAttribute(gl, buffers, programInfo, ixCube) {
+  const numComponents = 4;
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = ixCube * 3 * 4 * 4 * 4; // 3 faces per cube, 4 vertices per face, 4 bytes in a float
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+  gl.vertexAttribPointer(
+    programInfo.attribLocations.vertexColor,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset
+  );
+  gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+}
+
+function TransformRubiks2x2(CubeCorners, Move)
+{
+    let NewCubeCorners = CubeCorners.slice();
+    switch (Move)
+	{
+        case "T":
+            TransformRubiks2x2_T(CubeCorners, NewCubeCorners);
+			break;
+        case "T'":
+            TransformRubiks2x2_rT(CubeCorners, NewCubeCorners);
+			break;
+        case "2T":
+            TransformRubiks2x2_2T(CubeCorners, NewCubeCorners);
+			break;
+        case "R":
+            TransformRubiks2x2_R(CubeCorners, NewCubeCorners);
+			break;
+        case "R'":
+            TransformRubiks2x2_rR(CubeCorners, NewCubeCorners);
+			break;
+        case "2R":
+            TransformRubiks2x2_2R(CubeCorners, NewCubeCorners);
+			break;
+        case "F":
+            TransformRubiks2x2_F(CubeCorners, NewCubeCorners);
+			break;
+        case "F'":
+            TransformRubiks2x2_rF(CubeCorners, NewCubeCorners);
+			break;
+        case "2F":
+            TransformRubiks2x2_2F(CubeCorners, NewCubeCorners);
+			break;
+	}
+    return NewCubeCorners
+}
+
+function TransformRubiks2x2_T(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[0] = CubeCorners[2];
+    NewCubeCorners[1] = CubeCorners[0];
+    NewCubeCorners[2] = CubeCorners[3];
+    NewCubeCorners[3] = CubeCorners[1];
+}
+
+function TransformRubiks2x2_rT(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[0] = CubeCorners[1];
+    NewCubeCorners[1] = CubeCorners[3];
+    NewCubeCorners[2] = CubeCorners[0];
+    NewCubeCorners[3] = CubeCorners[2];
+}
+
+function TransformRubiks2x2_2T(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[0] = CubeCorners[3];
+    NewCubeCorners[1] = CubeCorners[2];
+    NewCubeCorners[2] = CubeCorners[1];
+    NewCubeCorners[3] = CubeCorners[0];
+}
+
+function TransformRubiks2x2_R(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[1] = FlipClockwise(CubeCorners[3]);
+    NewCubeCorners[3] = FlipAntiClockwise(CubeCorners[7]);
+    NewCubeCorners[5] = FlipAntiClockwise(CubeCorners[1]);
+    NewCubeCorners[7] = FlipClockwise(CubeCorners[5]);
+}
+
+function TransformRubiks2x2_rR(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[1] = FlipClockwise(CubeCorners[5]);
+    NewCubeCorners[3] = FlipAntiClockwise(CubeCorners[1]);
+    NewCubeCorners[5] = FlipAntiClockwise(CubeCorners[7]);
+    NewCubeCorners[7] = FlipClockwise(CubeCorners[3]);
+}
+
+function TransformRubiks2x2_2R(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[1] = CubeCorners[7];
+    NewCubeCorners[3] = CubeCorners[5];
+    NewCubeCorners[5] = CubeCorners[3];
+    NewCubeCorners[7] = CubeCorners[1];
+}
+
+function TransformRubiks2x2_F(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[2] = FlipAntiClockwise(CubeCorners[6]);
+    NewCubeCorners[3] = FlipClockwise(CubeCorners[2]);
+    NewCubeCorners[6] = FlipClockwise(CubeCorners[7]);
+    NewCubeCorners[7] = FlipAntiClockwise(CubeCorners[3]);
+}
+
+function TransformRubiks2x2_rF(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[2] = FlipAntiClockwise(CubeCorners[3]);
+    NewCubeCorners[3] = FlipClockwise(CubeCorners[7]);
+    NewCubeCorners[6] = FlipClockwise(CubeCorners[2]);
+    NewCubeCorners[7] = FlipAntiClockwise(CubeCorners[6]);
+}
+
+function TransformRubiks2x2_2F(CubeCorners, NewCubeCorners)
+{
+    NewCubeCorners[2] = CubeCorners[7];
+    NewCubeCorners[3] = CubeCorners[6];
+    NewCubeCorners[6] = CubeCorners[3];
+    NewCubeCorners[7] = CubeCorners[2];
+}
+
+function FlipClockwise(CubeCorner)
+{
+    let Rotation = CubeCorner & 0xf;
+    CubeCorner -= Rotation;
+    Rotation += 1;
+    if (Rotation == 4)
+	{
+        Rotation = 1;
+	}
+    CubeCorner += Rotation;
+    return CubeCorner;
+}
+
+function FlipAntiClockwise(CubeCorner)
+{
+    let Rotation = CubeCorner & 0xf;
+    CubeCorner -= Rotation;
+    Rotation -= 1;
+    if (Rotation == 0)
+	{
+        Rotation = 3;
+	}
+    CubeCorner += Rotation;
+    return CubeCorner;
+}
+
+function FindAllSolutionsUpToStep(Cube0, MaxStep)
+{
+    let FoundCubes = new Set();
+    let FoundCubePaths = {};
+    let Moves = [];
+    FindShortestPathsRecursive(Cube0, FoundCubes, FoundCubePaths, 0, MaxStep, Moves);
+
+    return FoundCubePaths;
+}
+
+
+// Reverse a path of moves to do backwards.
+// e.g. "2F", "R" -> "'R", "2F"
+function ReversePath(p)
+{
+    let pr = []
+    for (var strM of p)
+	{
+        let strRM = ReverseMove(strM);
+        pr.push(strRM);
+	}
+        
+    pr = pr.reverse();
+    return pr;
+}
+
+// Return the opposite move, e.g. "R" -> "R'"
+function ReverseMove(strM)
+{
+    switch (strM)
+	{
+        case "T":
+            strM = "T'";
+			break;
+        case "T'":
+            strM = "T";
+			break;
+        case "R":
+            strM = "R'";
+			break;
+        case "R'":
+            strM = "R";
+			break;
+        case "F":
+            strM = "F'";
+			break;
+        case "F'":
+            strM = "F";
+			break;
+	}
+    return strM;
+}
+ 
+
+function CubeToString(C)
+{
+    let str = C.map(n => (n).toString(16)).join('');
+    return str
+}
+
+// @param Cube - cube position to examine
+// @param FoundCubes - all known solutions for previous number of steps
+// @param Step - Current Step
+// @param MaxStep - Max Step (recursion) to Find solutions for
+function FindShortestPathsRecursive(Cube, FoundCubes, FoundCubePaths, Step, MaxStep, Moves)
+{
+    let CubeAsString = CubeToString(Cube);
+
+    if (FoundCubes.has(CubeAsString))
+	{
+        let CurrentBestPath = FoundCubePaths[CubeAsString];
+        if (CurrentBestPath.length <= Moves.length)
+		{
+            return;
+		}
+    }
+	else
+	{
+        FoundCubes.add(CubeAsString);
+	}
+
+    FoundCubePaths[CubeAsString] = Moves;
+    
+    if (Step == MaxStep)
+	{
+        return;
+	}
+
+    let MovesToTry = ["2T", "2R", "2F", "T", "T'", "R", "R'", "F", "F'"];
+
+    for (var m of MovesToTry)
+	{
+        let NewCube = TransformRubiks2x2(Cube, m);
+        let NewMoves = Moves.slice();
+        NewMoves.push(m);
+        FindShortestPathsRecursive(NewCube, FoundCubes, FoundCubePaths, Step + 1, MaxStep, NewMoves)
+	}
+}    
+
+
+
+function solveRubiks2x2(CubeToSolveBase10)
+{
+	let Cube0 = [0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81];
+	let CubeToSolve = [];
+
+	for (var c of CubeToSolveBase10)
+	{		
+	    let lowernibble = c % 10;;
+		let uppernibble = ((c - lowernibble) / 10) * 16;
+		CubeToSolve.push(uppernibble + lowernibble);
+	}
+
+	let Cube0Solutions_5 = FindAllSolutionsUpToStep(Cube0, 5);
+	let CubeToSolveSolutions_6 = FindAllSolutionsUpToStep(CubeToSolve, 6);
+	let Cube0Solutions_5Keys = Object.keys(Cube0Solutions_5);
+	let SharedCubes = Cube0Solutions_5Keys.filter(key => CubeToSolveSolutions_6.hasOwnProperty(key));
+	let BestLength = 12;
+	let BestPath = [];
+	for (var Cube of SharedCubes)
+    {
+		let PathFromCube0 = Cube0Solutions_5[Cube];
+		let PathFromCubeToSolve = CubeToSolveSolutions_6[Cube];
+
+		let TotalPath = PathFromCubeToSolve.slice();
+		TotalPath = TotalPath.concat(ReversePath(PathFromCube0));
+		if (TotalPath.length < BestLength)
+		{
+			BestPath = TotalPath;
+			BestLength = TotalPath.length;
+		}
+	}
+
+	//TimeTaken = time.process_time() - TimeBegin
+	//print('Time taken (s) - ', TimeTaken)
+	if (BestLength == 12)
+	{
+		return null;
+	}
+	return BestPath;
+}
+
+	
+	</script>
+  </head>
+
+  <body>
+	<canvas id="text" width="1024" height="800" style="position: absolute; left:0px; top:0px; z-index: 10;"></canvas>
+    <canvas id="glcanvas" width="1024" height="800" style="position: absolute; left:0px; top:0px; z-index: 0;"></canvas>
+  </body>
+</html>
+
