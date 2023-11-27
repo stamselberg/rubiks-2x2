@@ -1,8 +1,9 @@
 // src/components/ThreeDScene.js
 import React, { useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { CubeProvider } from './CubeContext.js';
+import CubeSolutionInfo from './CubeSolutionInfo.js';
 import RubiksCube from './RubiksCube.js'
-import * as THREE from 'three';
 
 function ThreeDScene() {
 
@@ -13,9 +14,12 @@ function ThreeDScene() {
 	>
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
-      <RubiksCube cubeId="LeftStillView" border="0.02" position={[-5, 1, -12]} cubeRotation={["fixed", Math.PI / 4, Math.PI / 4]} />
-      <RubiksCube cubeId="Rotating"  border="0.02" position={[ 0, 1, -6]} cubeRotation={["dynamic", 0.001, 0.005]}  />
-      <RubiksCube cubeId="RightStillView" border="0.02" position={[ 5, 1, -12]} cubeRotation={["fixed", 5 * Math.PI / 4, Math.PI / 4]}  />
+      <CubeProvider>
+        <RubiksCube cubeId="LeftStillView" border="0.02" position={[-5, 1, -12]} cubeRotation={["fixed", Math.PI / 4, Math.PI / 4]} />
+        <RubiksCube cubeId="Rotating"  border="0.02" position={[ 0, 1, -6]} cubeRotation={["dynamic", 0.0101, 0.0161]}  />
+        <RubiksCube cubeId="RightStillView" border="0.02" position={[ 5, 1, -12]} cubeRotation={["fixed", 5 * Math.PI / 4, Math.PI / 4]}  />
+        <CubeSolutionInfo/>
+      </CubeProvider>
     </Canvas>
   );
 }

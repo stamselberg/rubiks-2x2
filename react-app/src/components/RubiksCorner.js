@@ -2,9 +2,26 @@
 import React, { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { faceColours, toggleColour } from './colours.js'
+import { useCubeContext } from './CubeContext.js';
 
-function RubiksCorner({ colours, position, border, cubeId, cornerId }) {
+function RubiksCorner({ cubeId, cornerId, scale, border }) {
 	const rubiksCornerRef = useRef();
+
+	const { cubeColours, setCubeColours } = useCubeContext();
+
+  // Clockwise indicates whether for data-modelling reasons (that could be addressed...), the faces are defined
+  // Clockwise or Anticlockwise. Anticlockwise = TLR, Clockwise = TRL
+  const cornerData = {
+    1: { position: [-scale,  scale, -scale], clockwise : false },
+    2: { position: [ scale,  scale, -scale], clockwise :  true },
+    3: { position: [-scale,  scale,  scale], clockwise :  true },
+    4: { position: [ scale,  scale,  scale], clockwise : false },
+    5: { position: [-scale, -scale, -scale], clockwise :  true },
+    6: { position: [ scale, -scale, -scale], clockwise : false },
+    7: { position: [-scale, -scale,  scale], clockwise : false },
+    8: { position: [ scale, -scale,  scale], clockwise :  true }
+  };
 
 	// Data using knowledge about how the cube was built, used to determine if a click is for a face we care about.
 	// (as click events will be received for both front and back faces.
@@ -16,6 +33,8 @@ function RubiksCorner({ colours, position, border, cubeId, cornerId }) {
 	// is chosen what rotation the corner has.
 	// Furthermore, there MIGHT actually be a problem with the mapping. There are 8 positions and 8 corner pieces.
 	// Care needs to be taken to not confuse the two (might have been done above, revise as needed...)
+	// TODO: Remove this lengthy comment and live with the array.
+	// Or if deemed better: Define for each corner data which faces belong in Left/Right cube...
 	const LeftStillViewClickableFaces = new Map([
 		[10, { name: 'TOP-LEFT-BACK:      Top face    (Top)' }],
 		[12, { name: 'TOP-LEFT-BACK:      Left face   (Side)' }],
@@ -46,6 +65,7 @@ function RubiksCorner({ colours, position, border, cubeId, cornerId }) {
 		[42, { name: 'TOP-RIGHT-FRONT:    Right face  (Side)' }]
 	]);
 
+	const thisCornerData = cornerData[cornerId];
 
 	const handleClickTop = (event) => { handleClick(event, 0) }
 	const handleClickFront = (event) => { handleClick(event, 1) }
@@ -57,37 +77,66 @@ function RubiksCorner({ colours, position, border, cubeId, cornerId }) {
 			const lookupPoint = cornerId * 10 + ix;
 			const lookedUp = LookUpMap.get(lookupPoint);
 			if (lookedUp) {
-				console.log('Accepted: ', lookedUp, lookedUp.name);
+				//console.log('Accepted: ', lookedUp, lookedUp.name);
+				// Toggle the colour corresponding to the clicked face
+
+				if (thisCornerData.clockwise && (ix > 0))
+				{
+					ix = (ix == 1) ? 2 : 1;
+				}
+				const newCubeColours = [...cubeColours];
+
+				const ixColour = ((cornerId - 1) * 3) + ix;
+				const oldColour = newCubeColours[ixColour];
+				const newColour = toggleColour(oldColour);
+				//console.log('For ', cubeId, '[',cornerId,'].',ix,' changing from ', oldColour, ' to ', newColour);
+				newCubeColours[ixColour] = newColour;
+				setCubeColours(newCubeColours);
 			}
 		}
 	}
 
 	let size = 1 - 2 * border;
 
+  const getFaceColour = (ixFace) =>
+  {
+	// Handle the clockwise/anticlockwise peculiarity in the data model...
+	// Map 0=>0 1=>2 and 2=>1
+	if (thisCornerData.clockwise && (ixFace > 0))
+	{
+		ixFace = (ixFace == 1) ? 2 : 1;
+	}
+	// Map Corner 1 to ix 012/021 - Corner 2 to 345/354, etc....
+	const ixColour = ((cornerId - 1) * 3) + ixFace;
+    const chColour = cubeColours[ixColour];
+	const argbColour = faceColours[chColour];
+	return argbColour;
+  }
+
+
 	return (
-		<group ref={rubiksCornerRef} position={position}>
+		<group ref={rubiksCornerRef} position={thisCornerData.position}>
 			{/* Top face */}
-			<mesh position={[0, position[1], 0]} rotation={[Math.PI / 2, 0, 0]} onClick={handleClickTop}>
+			<mesh position={[0, thisCornerData.position[1], 0]} rotation={[Math.PI / 2, 0, 0]} onClick={handleClickTop}>
 				<planeGeometry args={[size, size]} />
-				<meshBasicMaterial color={colours[0]} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
+				<meshBasicMaterial color={getFaceColour(0)} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
 			</mesh>
 
 			{/* Front face */}
-			<mesh position={[0, 0, position[2]]} onClick={handleClickFront}>
+			<mesh position={[0, 0, thisCornerData.position[2]]} onClick={handleClickFront}>
 				<planeGeometry args={[size, size]} />
-				<meshBasicMaterial color={colours[1]} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
+				<meshBasicMaterial color={getFaceColour(1)} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
 			</mesh>
 
 			{/* Right face */}
-			<mesh position={[position[0], 0, 0]} rotation={[0, Math.PI / 2, 0]} onClick={handleClickSide}>
+			<mesh position={[thisCornerData.position[0], 0, 0]} rotation={[0, Math.PI / 2, 0]} onClick={handleClickSide}>
 				<planeGeometry args={[size, size]} />
-				<meshBasicMaterial color={colours[2]} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
+				<meshBasicMaterial color={getFaceColour(2)} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
 			</mesh>
 
 		</group>
 	);
 
 }
-
 
 export default RubiksCorner;

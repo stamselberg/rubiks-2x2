@@ -8,3 +8,16 @@ export const faceColours = {
   u : [1.0, 1.0, 1.0, 0.1], // Unselected face: grey
   h : [1.0, 1.0, 1.0, 0.4]  // Highlighted face: grey
 };
+
+export const toggleColour = (colour) => {
+  const colours = {
+    'y': 'r',
+    'r': 'b',
+    'b': 'g',
+    'g': 'o',
+    'o': 'w',
+    'w': 'y',
+  };
+
+  return colours[colour] || colour;
+};
