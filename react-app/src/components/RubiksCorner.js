@@ -10,18 +10,18 @@ function RubiksCorner({ cubeId, cornerId, scale, border }) {
 
 	const { cubeColours, setCubeColours } = useCubeContext();
 
-  // Clockwise indicates whether for data-modelling reasons (that could be addressed...), the faces are defined
-  // Clockwise or Anticlockwise. Anticlockwise = TLR, Clockwise = TRL
-  const cornerData = {
-    1: { position: [-scale,  scale, -scale], clockwise : false },
-    2: { position: [ scale,  scale, -scale], clockwise :  true },
-    3: { position: [-scale,  scale,  scale], clockwise :  true },
-    4: { position: [ scale,  scale,  scale], clockwise : false },
-    5: { position: [-scale, -scale, -scale], clockwise :  true },
-    6: { position: [ scale, -scale, -scale], clockwise : false },
-    7: { position: [-scale, -scale,  scale], clockwise : false },
-    8: { position: [ scale, -scale,  scale], clockwise :  true }
-  };
+	// Clockwise indicates whether for data-modelling reasons (that could be addressed...), the faces are defined
+	// Clockwise or Anticlockwise. Anticlockwise = TLR, Clockwise = TRL
+	const cornerData = {
+		1: { position: [-scale,  scale, -scale], clockwise : false },
+		2: { position: [ scale,  scale, -scale], clockwise :  true },
+		3: { position: [-scale,  scale,  scale], clockwise :  true },
+		4: { position: [ scale,  scale,  scale], clockwise : false },
+		5: { position: [-scale, -scale, -scale], clockwise :  true },
+		6: { position: [ scale, -scale, -scale], clockwise : false },
+		7: { position: [-scale, -scale,  scale], clockwise : false },
+		8: { position: [ scale, -scale,  scale], clockwise :  true }
+	};
 
 	// Data using knowledge about how the cube was built, used to determine if a click is for a face we care about.
 	// (as click events will be received for both front and back faces.
@@ -80,8 +80,7 @@ function RubiksCorner({ cubeId, cornerId, scale, border }) {
 				//console.log('Accepted: ', lookedUp, lookedUp.name);
 				// Toggle the colour corresponding to the clicked face
 
-				if (thisCornerData.clockwise && (ix > 0))
-				{
+				if (thisCornerData.clockwise && (ix > 0)) {
 					ix = (ix == 1) ? 2 : 1;
 				}
 				const newCubeColours = [...cubeColours];
@@ -98,20 +97,18 @@ function RubiksCorner({ cubeId, cornerId, scale, border }) {
 
 	let size = 1 - 2 * border;
 
-  const getFaceColour = (ixFace) =>
-  {
-	// Handle the clockwise/anticlockwise peculiarity in the data model...
-	// Map 0=>0 1=>2 and 2=>1
-	if (thisCornerData.clockwise && (ixFace > 0))
-	{
-		ixFace = (ixFace == 1) ? 2 : 1;
+	const getFaceColour = (ixFace) => {
+		// Handle the clockwise/anticlockwise peculiarity in the data model...
+		// Map 0=>0 1=>2 and 2=>1
+		if (thisCornerData.clockwise && (ixFace > 0)) {
+			ixFace = (ixFace == 1) ? 2 : 1;
+		}
+		// Map Corner 1 to ix 012/021 - Corner 2 to 345/354, etc....
+		const ixColour = ((cornerId - 1) * 3) + ixFace;
+		const chColour = cubeColours[ixColour];
+		const argbColour = faceColours[chColour];
+		return argbColour;
 	}
-	// Map Corner 1 to ix 012/021 - Corner 2 to 345/354, etc....
-	const ixColour = ((cornerId - 1) * 3) + ixFace;
-    const chColour = cubeColours[ixColour];
-	const argbColour = faceColours[chColour];
-	return argbColour;
-  }
 
 
 	return (
