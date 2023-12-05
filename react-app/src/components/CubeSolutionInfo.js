@@ -25,8 +25,8 @@ function CubeSolutionInfo() {
     const ixColor = ixPhysicalCorner * 3;
 
     const coloursForPos1 = cubeColours[ixColor] + cubeColours[ixColor + 1] + cubeColours[ixColor + 2];
-    const coloursForPos2 = cubeColours[ixColor + 1] + cubeColours[ixColor + 2] + cubeColours[ixColor + 0];
-    const coloursForPos3 = cubeColours[ixColor + 2] + cubeColours[ixColor] + cubeColours[ixColor + 1];
+    const coloursForPos2 = cubeColours[ixColor + 2] + cubeColours[ixColor] + cubeColours[ixColor + 1];
+    const coloursForPos3 = cubeColours[ixColor + 1] + cubeColours[ixColor + 2] + cubeColours[ixColor + 0];
 
     let idModelCorner = 0;
     const ixMatchPos1 = cubeCorners.indexOf(coloursForPos1);
