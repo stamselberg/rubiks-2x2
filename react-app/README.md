@@ -1,8 +1,9 @@
 # Rubik's 2x2 Solver - React App
 
 This React app is part of a larger project aimed at solving the Rubik's 2x2 cube.
-So far, it only allows users to interact with the cube, toggling the colors of its faces. A solver is to be added on top, integrated from one of the other project folders.
 The design showcases how to build up simple 3D objects made up of smaller parts.
+So far, users can interact with the cube, toggling the colors of its faces. A solver then solves the cube provided that the back corner is WRB, and a simple output shows solution.
+Next steps is to solve for any position (plan is to match the solve algorithm to the same back corner based on its colours, e.g. YGO would make starting cube have white top, red front, etc...)
 
 ## Table of Contents
 - [Installation](#installation)
