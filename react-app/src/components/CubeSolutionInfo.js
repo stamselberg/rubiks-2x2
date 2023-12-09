@@ -47,16 +47,10 @@ function CubeSolutionInfo() {
 
   const bAllCornersValid = !lidModelCorners.includes(0);
 
-  const colourInfo = cubeColours?.join(',');
-  const cornerInfo = lidModelCorners.join(' ');
+  //const cornerInfo = lidModelCorners.join(' ');
   let solution = 'No cube exists that looks like this';
 
   if (bAllCornersValid) {
-    // TODO: Rewrite so that cube's fifth item isn't required to be 51
-    // (i.e. update solveRubiks2x2 to first rotate the entire cube so that fifth item IS that - and then rotate solution steps
-    // [if one is found] the other way - e.g. if the cube had to be rotated clockwise around Y axis, then the mappings would be
-    // T->T, F -> L, R -> F. This gives rise to issues, of course, since you might transform into bottom and back moves.
-    // Not ideal. Might be better to insist on user doing the cube rotation themselves (i.e. make it a "pre-solution" step...)
     const lBestPath = solveRubiks2x2(lidModelCorners);
     if (lBestPath) {
       solution = 'Solution: ' + lBestPath.join(' ');
@@ -69,12 +63,11 @@ function CubeSolutionInfo() {
         style={{
           position: 'absolute',
           top: '100px',
-          left: '-100px',
+          left: '-400px',
           color: 'white',
           zIndex: '1',
         }}
       >
-        {cornerInfo} - 
         {solution}
       </div>
     </Html>

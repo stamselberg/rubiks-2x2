@@ -204,19 +204,10 @@ function FindShortestPathsRecursive(Cube, FoundCubes, FoundCubePaths, Step, MaxS
         FindShortestPathsRecursive(NewCube, FoundCubes, FoundCubePaths, Step + 1, MaxStep, NewMoves)
     }
 }
-
-
-// Given array of 8 cube model corners where fifth item is known to be 51, return best path to solve
-// All items in array are trusted to be two-digit base-10 numbers where first digit is 1..8 and second is 1..3
-function solveRubiks2x2(CubeToSolveBase10) {
-    let Cube0 = [0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81];
-    let CubeToSolve = [];
-
-    for (var c of CubeToSolveBase10) {
-        let lowernibble = c % 10;;
-        let uppernibble = ((c - lowernibble) / 10) * 16;
-        CubeToSolve.push(uppernibble + lowernibble);
-    }
+// Solve a Rubiks 2x2 knowing that the 5th piece is matching
+// the solved cube. E.g. if 5th piece is WRB, then the matching
+// cube is trusted to have Top=Y, Bottom=W, Left=R, Back=B, Right=O, Front=G
+function solveRubiks2x2ToKnownMatch(CubeToSolve, Cube0) {
 
     let Cube0Solutions_5 = FindAllSolutionsUpToStep(Cube0, 5);
     let CubeToSolveSolutions_6 = FindAllSolutionsUpToStep(CubeToSolve, 6);
@@ -241,5 +232,57 @@ function solveRubiks2x2(CubeToSolveBase10) {
     }
     return BestPath;
 }
+
+
+
+// Given array of 8 cube model corners where fifth item is known to be 51, return best path to solve
+// All items in array are trusted to be two-digit base-10 numbers where first digit is 1..8 and second is 1..3
+//
+// Solve by using the "KnownMatch" method, first create Cube0 to match piece 5
+// of the cube to solve. E.g. if 5th piece is WRB, then the matching
+// cube will be the one that has Top=Y, Bottom=W, Left=R, Back=B, Right=O, Front=G
+// (0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81)
+function solveRubiks2x2(cubeToSolveBase10) {
+    let cubeToSolve = [];
+
+    for (var c of cubeToSolveBase10) {
+        let lowernibble = c % 10;
+        let uppernibble = ((c - lowernibble) / 10) * 16;
+        cubeToSolve.push(uppernibble + lowernibble);
+    }
+    const cubeMapIDToColour = {
+        0x11: 'YBR', 0x12: 'BRY', 0x13: 'RYB',
+        0x21: 'YOB', 0x22: 'OBY', 0x23: 'BYO',
+        0x31: 'YRG', 0x32: 'RGY', 0x33: 'GYR',
+        0x41: 'YGO', 0x42: 'GOY', 0x43: 'OYG',
+        0x51: 'WRB', 0x52: 'RBW', 0x53: 'BWR',
+        0x61: 'WBO', 0x62: 'BOW', 0x63: 'OWB',
+        0x71: 'WGR', 0x72: 'GRW', 0x73: 'RWG',
+        0x81: 'WOG', 0x82: 'OGW', 0x83: 'GWO'
+    };
+
+    const cubeMapColourToId = {};
+    for (const [key, value] of Object.entries(cubeMapIDToColour)) {
+        cubeMapColourToId[value] = parseInt(key);
+    }
+
+    const colourToOpposite = { 'Y': 'W', 'W': 'Y', 'G': 'B', 'B': 'G', 'R': 'O', 'O': 'R' };
+
+    const piece5 = cubeToSolve[4];
+    const piece5Colours = cubeMapIDToColour[piece5];
+    const bo = piece5Colours[0];
+    const ba = piece5Colours[2];
+    const l = piece5Colours[1];
+    const t = colourToOpposite[bo];
+    const r = colourToOpposite[l];
+    const f = colourToOpposite[ba];
+
+    const pieceColours = [t + ba + l, t + r + ba, t + l + f, t + f + r, piece5Colours, bo + ba + r, bo + f + l, bo + r + f];
+    const cube0 = pieceColours.map(p => cubeMapColourToId[p]);
+    
+    const solution = solveRubiks2x2ToKnownMatch(cubeToSolve, cube0);
+    return solution;
+}
+
 
 export { solveRubiks2x2 };

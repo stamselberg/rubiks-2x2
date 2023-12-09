@@ -249,53 +249,106 @@ def FindShortestPathsRecursive(Cube, FoundCubes, FoundCubePaths, Step, MaxStep, 
         NewMoves = Moves[:]
         NewMoves.append(m)
         FindShortestPathsRecursive(NewCube, FoundCubes, FoundCubePaths, Step + 1, MaxStep, NewMoves)
+
+# Solve a Rubiks 2x2 knowing that the 5th piece is matching
+# the solved cube. E.g. if 5th piece is WRB, then the matching
+# cube is trusted to have Top=Y, Bottom=W, Left=R, Back=B, Right=O, Front=G
+def SolveRubiks2x2ToKnownMatch(CubeToSolve, Cube0):
+
+    TimeBegin = time.process_time()
+
+    # Find all possible positions from the solved cube that can be done in five moves or less
+    Cube0Solutions_5 = FindAllSolutionsUpToStep(Cube0, 5)
+    # Find all possible positions from the requested cube that can be done in six moves or less
+    CubeToSolveSolutions_6 = FindAllSolutionsUpToStep(CubeToSolve, 6)
+    Set0 = set(Cube0Solutions_5)
+    SetToSolve = set(CubeToSolveSolutions_6)
+    # Match the cubes paths that "meet in the middle" (i.e. that end up in the same cube) - then find the shortest path among them.
+    SharedCubes = Set0.intersection(SetToSolve)
+    #print ('#SharedCubes', len(SharedCubes))
+    BestLength = 12
+    BestPath = []
+    for Cube in SharedCubes:
+        PathFromCube0 = Cube0Solutions_5[Cube]
+        PathFromCubeToSolve = CubeToSolveSolutions_6[Cube]
+        TotalPath = PathFromCubeToSolve[:]
+        TotalPath.extend(ReversePath(PathFromCube0))
+        #print('For meeting point', Cube, 'length is', len(TotalPath),':', TotalPath)
+        if (len(TotalPath) < BestLength):
+            #print('New best path', Cube, 'length is', len(TotalPath),':', ' '.join(TotalPath))
+            BestPath = TotalPath
+            BestLength = len(TotalPath)
+
+    TimeTaken = time.process_time() - TimeBegin
+    print('Time taken (s) - ', TimeTaken)
+    if BestLength == 12:
+        print('No solutions - bad initial cube')
+    else:
+        print('Shortest solution is:', ' '.join(BestPath))
+
+
+def TestSolveRubiks2x2ToKnownMatch():
+    # Example cube to solve.
+    # e.g. [0x83, 0x13, 0x21, 0x31, 0x51, 0x63, 0x42, 0x73] 
+
+    #                   +------+------+
+    #                  / 1    / 2    /|
+    #                 / GWO  / RYB  / |
+    #                +------+------+--+
+    #               / 3    / 4    /| /|
+    #              / YOB  / YRG  / |/ |
+    #             +------+------+  +--+
+    # 5--> WRB    |      |      | /|6/ OWB
+    #             |      |      |/ |/
+    #             +------+------+  +
+    #             |  7   |  8   | /
+    #             | GOY  | RWG  |/
+    #             +------+------+
+    CubeToSolve = [0x83, 0x13, 0x21, 0x31, 0x51, 0x63, 0x42, 0x73] 
+
+    # Cube0 is Top=Y, Bottom=W, Left=R, Back=B, Right=O, Front=G
+    Cube0 = [0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81]
+
+    SolveRubiks2x2ToKnownMatch(CubeToSolve, Cube0)
+
+
+# Solve a Rubiks 2x2 by using the "KnownMatch" method, first create Cube0 to match piece 5
+# the solved cube. E.g. if 5th piece is WRB, then the matching
+# cube will be the one that has Top=Y, Bottom=W, Left=R, Back=B, Right=O, Front=G
+# (0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81)
+
+def SolveRubiks2x2ToAnyMatch(CubeToSolve):
+    CubeMapIDToColour = {
+        0x11 : 'YBR', 0x12 : 'BRY', 0x13: 'RYB',
+        0x21 : 'YOB', 0x22 : 'OBY', 0x23: 'BYO',
+        0x31 : 'YRG', 0x32 : 'RGY', 0x33: 'GYR',
+        0x41 : 'YGO', 0x42 : 'GOY', 0x43: 'OYG',
+        0x51 : 'WRB', 0x52 : 'RBW', 0x53: 'BWR',
+        0x61 : 'WBO', 0x62 : 'BOW', 0x63: 'OWB',
+        0x71 : 'WGR', 0x72 : 'GRW', 0x73: 'RWG',
+        0x81 : 'WOG', 0x82 : 'OGW', 0x83: 'GWO'
+    }
+    CubeMapColourToId = {value: key for key, value in CubeMapIDToColour.items()}
+
+    ColourToOpposite = { 'Y': 'W', 'W': 'Y', 'G': 'B', 'B': 'G', 'R': 'O', 'O': 'R'}
+
+    Piece5 = CubeToSolve[4]
+    Piece5Colours = CubeMapIDToColour[Piece5]
+    Bo = Piece5Colours[0]
+    Ba = Piece5Colours[2]
+    L = Piece5Colours[1]
+    T = ColourToOpposite[Bo]
+    R = ColourToOpposite[L]
+    F = ColourToOpposite[Ba]
+
+    PieceColours = [T+Ba+L, T+R+Ba, T+L+F, T+F+R, Piece5Colours, Bo+Ba+R, Bo+F+L, Bo+R+F]
+    Cube0 = list(map(lambda p: CubeMapColourToId[p], PieceColours))
+    #PrintCube(Cube0)
+
+    SolveRubiks2x2ToKnownMatch(CubeToSolve, Cube0)
+
+CubeToSolve = [0x62, 0x31, 0x53, 0x82, 0x13, 0x71, 0x43, 0x22] 
+CubeToSolve = [0x13, 0x83, 0x72, 0x41, 0x23, 0x62, 0x53, 0x33] 
+SolveRubiks2x2ToAnyMatch(CubeToSolve)
+
     
-TimeBegin = time.process_time()
-Cube0 = [0x11, 0x21, 0x31, 0x41, 0x51, 0x61, 0x71, 0x81]
-# Example cube to solve.
-# e.g. [0x83, 0x13, 0x21, 0x31, 0x51, 0x63, 0x42, 0x73] 
-
-                   +------+------+
-                  / 1    / 2    /|
-                 / GWO  / RYB  / |
-                +------+------+--+
-               / 3    / 4    /| /|
-              / YOB  / YRG  / |/ |
-             +------+------+  +--+
- 5--> WRB    |      |      | /|6/ OWB
-             |      |      |/ |/
-             +------+------+  +
-             |  7   |  8   | /
-             | GOY  | RWG  |/
-             +------+------+
-
-CubeToSolve = [0x83, 0x13, 0x21, 0x31, 0x51, 0x63, 0x42, 0x73] 
-# Find all possible positions from the solved cube that can be done in five moves or less
-Cube0Solutions_5 = FindAllSolutionsUpToStep(Cube0, 5)
-# Find all possible positions from the requested cube that can be done in six moves or less
-CubeToSolveSolutions_6 = FindAllSolutionsUpToStep(CubeToSolve, 6)
-Set0 = set(Cube0Solutions_5)
-SetToSolve = set(CubeToSolveSolutions_6)
-# Match the cubes paths that "meet in the middle" (i.e. that end up in the same cube) - then find the shortest path among them.
-SharedCubes = Set0.intersection(SetToSolve)
-#print ('#SharedCubes', len(SharedCubes))
-BestLength = 12
-BestPath = []
-for Cube in SharedCubes:
-    PathFromCube0 = Cube0Solutions_5[Cube]
-    PathFromCubeToSolve = CubeToSolveSolutions_6[Cube]
-    TotalPath = PathFromCubeToSolve[:]
-    TotalPath.extend(ReversePath(PathFromCube0))
-    #print('For meeting point', Cube, 'length is', len(TotalPath),':', TotalPath)
-    if (len(TotalPath) < BestLength):
-        #print('New best path', Cube, 'length is', len(TotalPath),':', ' '.join(TotalPath))
-        BestPath = TotalPath
-        BestLength = len(TotalPath)
-
-TimeTaken = time.process_time() - TimeBegin
-print('Time taken (s) - ', TimeTaken)
-if BestLength == 12:
-    print('No solutions - bad initial cube')
-else:
-    print('Shortest solution is:', ' '.join(BestPath))
-

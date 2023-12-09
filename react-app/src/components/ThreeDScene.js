@@ -15,9 +15,10 @@ function ThreeDScene() {
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
       <CubeProvider>
-        <RubiksCube cubeId="LeftStillView" border="0.02" position={[-5, 1, -12]} cubeRotation={["fixed", Math.PI / 4, Math.PI / 4]} />
-        <RubiksCube cubeId="Rotating"  border="0.02" position={[ 0, 1, -6]} cubeRotation={["dynamic", 0.0101, 0.0161]}  />
-        <RubiksCube cubeId="RightStillView" border="0.02" position={[ 5, 1, -12]} cubeRotation={["fixed", 5 * Math.PI / 4, Math.PI / 4]}  />
+        <RubiksCube cubeId="LeftStillView" border="0.02" position={[-5, 3, -12]} cubeRotation={["fixed", Math.PI / 4, Math.PI / 4]} />
+        <RubiksCube cubeId="Rotating"  border="0.02" position={[ 0, 3, -6]} cubeRotation={["dynamic", 0.0101, 0.0161]}  />
+        <RubiksCube cubeId="RightStillView" border="0.02" position={[ 5, 3, -12]} cubeRotation={["fixed", 5 * Math.PI / 4, Math.PI / 4]}  />
+        <RubiksCube cubeId="SolutionStart"  border="0.02" position={[ 0, -1, -6]} cubeRotation={["fixed", Math.PI / 16, Math.PI / 16]}  />
         <CubeSolutionInfo/>
       </CubeProvider>
     </Canvas>
