@@ -6,7 +6,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>My React 3D App</h1>
+        <h1>Rubiks 2x2 Solver</h1>
       </header>
       <main>
         <ThreeDScene />
