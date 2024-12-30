@@ -10,8 +10,8 @@ function TransformRubiks2x2(CubeCorners, Move)
         case "T'":
             TransformRubiks2x2_rT(CubeCorners, NewCubeCorners);
 			break;
-        case "2T":
-            TransformRubiks2x2_2T(CubeCorners, NewCubeCorners);
+        case "T2":
+            TransformRubiks2x2_T2(CubeCorners, NewCubeCorners);
 			break;
         case "R":
             TransformRubiks2x2_R(CubeCorners, NewCubeCorners);
@@ -19,8 +19,8 @@ function TransformRubiks2x2(CubeCorners, Move)
         case "R'":
             TransformRubiks2x2_rR(CubeCorners, NewCubeCorners);
 			break;
-        case "2R":
-            TransformRubiks2x2_2R(CubeCorners, NewCubeCorners);
+        case "R2":
+            TransformRubiks2x2_R2(CubeCorners, NewCubeCorners);
 			break;
         case "F":
             TransformRubiks2x2_F(CubeCorners, NewCubeCorners);
@@ -28,8 +28,8 @@ function TransformRubiks2x2(CubeCorners, Move)
         case "F'":
             TransformRubiks2x2_rF(CubeCorners, NewCubeCorners);
 			break;
-        case "2F":
-            TransformRubiks2x2_2F(CubeCorners, NewCubeCorners);
+        case "F2":
+            TransformRubiks2x2_F2(CubeCorners, NewCubeCorners);
 			break;
 	}
     return NewCubeCorners
@@ -51,7 +51,7 @@ function TransformRubiks2x2_rT(CubeCorners, NewCubeCorners)
     NewCubeCorners[3] = CubeCorners[2];
 }
 
-function TransformRubiks2x2_2T(CubeCorners, NewCubeCorners)
+function TransformRubiks2x2_T2(CubeCorners, NewCubeCorners)
 {
     NewCubeCorners[0] = CubeCorners[3];
     NewCubeCorners[1] = CubeCorners[2];
@@ -75,7 +75,7 @@ function TransformRubiks2x2_rR(CubeCorners, NewCubeCorners)
     NewCubeCorners[7] = FlipClockwise(CubeCorners[3]);
 }
 
-function TransformRubiks2x2_2R(CubeCorners, NewCubeCorners)
+function TransformRubiks2x2_R2(CubeCorners, NewCubeCorners)
 {
     NewCubeCorners[1] = CubeCorners[7];
     NewCubeCorners[3] = CubeCorners[5];
@@ -99,7 +99,7 @@ function TransformRubiks2x2_rF(CubeCorners, NewCubeCorners)
     NewCubeCorners[7] = FlipAntiClockwise(CubeCorners[6]);
 }
 
-function TransformRubiks2x2_2F(CubeCorners, NewCubeCorners)
+function TransformRubiks2x2_F2(CubeCorners, NewCubeCorners)
 {
     NewCubeCorners[2] = CubeCorners[7];
     NewCubeCorners[3] = CubeCorners[6];
@@ -145,7 +145,7 @@ function FindAllSolutionsUpToStep(Cube0, MaxStep)
 
 
 // Reverse a path of moves to do backwards.
-// e.g. "2F", "R" -> "'R", "2F"
+// e.g. "F2", "R" -> "'R", "F2"
 function ReversePath(p)
 {
     let pr = []
@@ -221,7 +221,7 @@ function FindShortestPathsRecursive(Cube, FoundCubes, FoundCubePaths, Step, MaxS
         return;
 	}
 
-    let MovesToTry = ["2T", "2R", "2F", "T", "T'", "R", "R'", "F", "F'"];
+    let MovesToTry = ["T2", "R2", "F2", "T", "T'", "R", "R'", "F", "F'"];
 
     for (var m of MovesToTry)
 	{

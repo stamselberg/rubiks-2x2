@@ -36,12 +36,12 @@ def PrintCubeShort(CubeCorners):
 # The corners are bytes - split into upper and lower nibble for piece (1..8) and rotation (1..3).
 # i.e. as Hex the possible values can be: 0x11, 0x12, 0x13, 0x21, 0x22, 0x23, ...., 0x81, 0x82, 0x83
 # Moves can be any of (using standard cuber notation):
-# T, T', 2T
-# R, R', 2R
-# F, F', 2F
+# T, T', T2
+# R, R', R2
+# F, F', F2
 
 # So e.g.
-# - an array of [Xn, Ym, Zo, Wp, **, **, **, **] with a rotation of 2T would become
+# - an array of [Xn, Ym, Zo, Wp, **, **, **, **] with a rotation of T2 would become
 #               [Wp, Zo, Ym, Xn, **, **, **, **]
 # - an array of [**, X1, **, Y1, **, Z1, **,  W1] with a rotation of R' would become
 #               [**, Z2, **, X3, **, W3, **,  Y2]
@@ -52,20 +52,20 @@ def TransformRubiks2x2(CubeCorners, Move):
             TransformRubiks2x2_T(CubeCorners, NewCubeCorners)
         case "T'":
             TransformRubiks2x2_rT(CubeCorners, NewCubeCorners)
-        case "2T":
-            TransformRubiks2x2_2T(CubeCorners, NewCubeCorners)
+        case "T2":
+            TransformRubiks2x2_T2(CubeCorners, NewCubeCorners)
         case "R":
             TransformRubiks2x2_R(CubeCorners, NewCubeCorners)
         case "R'":
             TransformRubiks2x2_rR(CubeCorners, NewCubeCorners)
-        case "2R":
-            TransformRubiks2x2_2R(CubeCorners, NewCubeCorners)
+        case "R2":
+            TransformRubiks2x2_R2(CubeCorners, NewCubeCorners)
         case "F":
             TransformRubiks2x2_F(CubeCorners, NewCubeCorners)
         case "F'":
             TransformRubiks2x2_rF(CubeCorners, NewCubeCorners)
-        case "2F":
-            TransformRubiks2x2_2F(CubeCorners, NewCubeCorners)
+        case "F2":
+            TransformRubiks2x2_F2(CubeCorners, NewCubeCorners)
     return NewCubeCorners
   
 # @see TransformRubiks2x2 - T move
@@ -82,8 +82,8 @@ def TransformRubiks2x2_rT(CubeCorners, NewCubeCorners):
     NewCubeCorners[2] = CubeCorners[0]
     NewCubeCorners[3] = CubeCorners[2]
 
-# @see TransformRubiks2x2 - 2T move
-def TransformRubiks2x2_2T(CubeCorners, NewCubeCorners):
+# @see TransformRubiks2x2 - T2 move
+def TransformRubiks2x2_T2(CubeCorners, NewCubeCorners):
     NewCubeCorners[0] = CubeCorners[3]
     NewCubeCorners[1] = CubeCorners[2]
     NewCubeCorners[2] = CubeCorners[1]
@@ -103,8 +103,8 @@ def TransformRubiks2x2_rR(CubeCorners, NewCubeCorners):
     NewCubeCorners[5] = FlipAntiClockwise(CubeCorners[7])
     NewCubeCorners[7] = FlipClockwise(CubeCorners[3])
 
-# @see TransformRubiks2x2 - 2R move
-def TransformRubiks2x2_2R(CubeCorners, NewCubeCorners):
+# @see TransformRubiks2x2 - R2 move
+def TransformRubiks2x2_R2(CubeCorners, NewCubeCorners):
     NewCubeCorners[1] = CubeCorners[7]
     NewCubeCorners[3] = CubeCorners[5]
     NewCubeCorners[5] = CubeCorners[3]
@@ -124,8 +124,8 @@ def TransformRubiks2x2_rF(CubeCorners, NewCubeCorners):
     NewCubeCorners[6] = FlipClockwise(CubeCorners[2])
     NewCubeCorners[7] = FlipAntiClockwise(CubeCorners[6])
 
-# @see TransformRubiks2x2 - 2F move
-def TransformRubiks2x2_2F(CubeCorners, NewCubeCorners):
+# @see TransformRubiks2x2 - F2 move
+def TransformRubiks2x2_F2(CubeCorners, NewCubeCorners):
     NewCubeCorners[2] = CubeCorners[7]
     NewCubeCorners[3] = CubeCorners[6]
     NewCubeCorners[6] = CubeCorners[3]
@@ -153,7 +153,7 @@ def FlipAntiClockwise(CubeCorner):
 
 # Given a starting Cube presumed to be a cube in the solved state (array of 8 corner pieces)
 # Return an array of the shortest unique paths that can be done in MaxStep moves or less.
-# E.g. 2T is the shortest path for a one-move solution, but 2T, 2T, 2T (which solves the same cube) is not included (as 2T is shorter)
+# E.g. T2 is the shortest path for a one-move solution, but T2, T2, T2 (which solves the same cube) is not included (as T2 is shorter)
 def FindAllSolutionsUpToStep(Cube0, MaxStep):
     FoundCubes = set()
     FoundCubePaths = {}
@@ -181,7 +181,7 @@ def PrintCubeSolution(str, p):
     print('"' + str.replace('0x', '') + '":"' + ' '.join(pr) + '",')
 
 # Reverse a path of moves to do backwards.
-# e.g. "2F", "R" -> "'R", "2F"
+# e.g. "F2", "R" -> "R'", "F2"
 def ReversePath(p):
     pr = []
     for strM in p:
@@ -242,7 +242,7 @@ def FindShortestPathsRecursive(Cube, FoundCubes, FoundCubePaths, Step, MaxStep, 
         #print('End of recursion')
         return
 
-    MovesToTry = ["2T", "2R", "2F", "T", "T'", "R", "R'", "F", "F'"]
+    MovesToTry = ["T2", "R2", "F2", "T", "T'", "R", "R'", "F", "F'"]
 
     for m in MovesToTry:
         NewCube = TransformRubiks2x2(Cube, m)
