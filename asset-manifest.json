@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/rubiks-2x2/static/css/main.e6c13ad2.css",
+    "main.js": "/rubiks-2x2/static/js/main.627c7c9a.js",
+    "static/js/488.ccfe8db4.chunk.js": "/rubiks-2x2/static/js/488.ccfe8db4.chunk.js",
+    "index.html": "/rubiks-2x2/index.html",
+    "main.e6c13ad2.css.map": "/rubiks-2x2/static/css/main.e6c13ad2.css.map",
+    "main.627c7c9a.js.map": "/rubiks-2x2/static/js/main.627c7c9a.js.map",
+    "488.ccfe8db4.chunk.js.map": "/rubiks-2x2/static/js/488.ccfe8db4.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.627c7c9a.js"
+  ]
+}
