@@ -1,7 +1,6 @@
 // RubiksCorner.js
 import React, { useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
+import { DoubleSide} from 'three';
 import { faceColours, toggleColour } from './colours.js'
 import { useCubeContext } from './CubeContext.js';
 
@@ -71,24 +70,21 @@ function RubiksCorner({ cubeId, cornerId, scale, border }) {
 	const handleClickFront = (event) => { handleClick(event, 1) }
 	const handleClickSide = (event) => { handleClick(event, 2) }
 	const handleClick = (event, ix) => {
-		//console.log('Click: cubeId: ', cubeId, 'Corner: ', cornerId, ' face (todo: depends...): ', ix, 'point:', event.point);
-		const LookUpMap = cubeId == 'LeftStillView' ? LeftStillViewClickableFaces : cubeId == 'RightStillView' ? RightStillViewClickableFaces : null;
+		const LookUpMap = cubeId === 'LeftStillView' ? LeftStillViewClickableFaces : cubeId === 'RightStillView' ? RightStillViewClickableFaces : null;
 		if (LookUpMap) {
 			const lookupPoint = cornerId * 10 + ix;
 			const lookedUp = LookUpMap.get(lookupPoint);
 			if (lookedUp) {
-				//console.log('Accepted: ', lookedUp, lookedUp.name);
-				// Toggle the colour corresponding to the clicked face
 
+				// Toggle the colour corresponding to the clicked face
 				if (thisCornerData.clockwise && (ix > 0)) {
-					ix = (ix == 1) ? 2 : 1;
+					ix = (ix === 1) ? 2 : 1;
 				}
 				const newCubeColours = [...cubeColours];
 
 				const ixColour = ((cornerId - 1) * 3) + ix;
 				const oldColour = newCubeColours[ixColour];
 				const newColour = toggleColour(oldColour);
-				//console.log('For ', cubeId, '[',cornerId,'].',ix,' changing from ', oldColour, ' to ', newColour);
 				newCubeColours[ixColour] = newColour;
 				setCubeColours(newCubeColours);
 			}
@@ -101,7 +97,7 @@ function RubiksCorner({ cubeId, cornerId, scale, border }) {
 		// Handle the clockwise/anticlockwise peculiarity in the data model...
 		// Map 0=>0 1=>2 and 2=>1
 		if (thisCornerData.clockwise && (ixFace > 0)) {
-			ixFace = (ixFace == 1) ? 2 : 1;
+			ixFace = (ixFace === 1) ? 2 : 1;
 		}
 		// Map Corner 1 to ix 012/021 - Corner 2 to 345/354, etc....
 		const ixColour = ((cornerId - 1) * 3) + ixFace;
@@ -116,19 +112,19 @@ function RubiksCorner({ cubeId, cornerId, scale, border }) {
 			{/* Top face */}
 			<mesh position={[0, thisCornerData.position[1], 0]} rotation={[Math.PI / 2, 0, 0]} onClick={handleClickTop}>
 				<planeGeometry args={[size, size]} />
-				<meshBasicMaterial color={getFaceColour(0)} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
+				<meshBasicMaterial color={getFaceColour(0)} transparent={true} opacity="0.94" side={DoubleSide} />
 			</mesh>
 
 			{/* Front face */}
 			<mesh position={[0, 0, thisCornerData.position[2]]} onClick={handleClickFront}>
 				<planeGeometry args={[size, size]} />
-				<meshBasicMaterial color={getFaceColour(1)} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
+				<meshBasicMaterial color={getFaceColour(1)} transparent={true} opacity="0.94" side={DoubleSide} />
 			</mesh>
 
 			{/* Right face */}
 			<mesh position={[thisCornerData.position[0], 0, 0]} rotation={[0, Math.PI / 2, 0]} onClick={handleClickSide}>
 				<planeGeometry args={[size, size]} />
-				<meshBasicMaterial color={getFaceColour(2)} transparent={true} opacity="0.94" side={THREE.DoubleSide} />
+				<meshBasicMaterial color={getFaceColour(2)} transparent={true} opacity="0.94" side={DoubleSide} />
 			</mesh>
 
 		</group>

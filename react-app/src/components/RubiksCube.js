@@ -3,10 +3,9 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import RubiksCorner from './RubiksCorner.js'
 
-function RubiksCube({ colours, position, border, cubeRotation, cubeId }) {
+function RubiksCube({ position, border, cubeRotation, cubeId }) {
   const rubiksCubeRef = useRef();
 
-  // Use react-three-fiber's useFrame to rotate the group
   useFrame(() => {
     if (cubeRotation[0] == "dynamic") {
       rubiksCubeRef.current.rotation.x += cubeRotation[1];

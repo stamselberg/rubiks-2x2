@@ -1,16 +1,16 @@
 // CubeSolutionInfo.js
 import React from 'react';
-import { Html } from '@react-three/drei';
 import { useCubeContext } from './CubeContext';
 import { cubeCorners } from './cubedata.js'
 import { solveRubiks2x2 } from './SolveRubiks2x2.js'
+import InfoPanel from './InfoPanel.js'
 
 // This is where the solution will go. This class needs to analyse
 // the 24 faces, mapping each three to a cube corner (if one exists)
 // If all 8 are mapped (and all 8 are used) the solver should activate
 // and output the solution
 // The HTML needs some work (should not use absolute positioning, should possibly use CSS, or use 3D objects instead)
-function CubeSolutionInfo() {
+function CubeSolutionInfo({ position }) {
   const { cubeColours } = useCubeContext();
 
   // Based on current colours, determine which corner (if any) and rotation in the
@@ -47,34 +47,20 @@ function CubeSolutionInfo() {
 
   const bAllCornersValid = !lidModelCorners.includes(0);
 
-  //const cornerInfo = lidModelCorners.join(' ');
   let solution = 'No cube exists that looks like this';
 
   if (bAllCornersValid) {
     const lBestPath = solveRubiks2x2(lidModelCorners);
     if (lBestPath) {
-      solution = 'Solution: ' + lBestPath.join(' ');
+      solution = (lBestPath.length == 0) ? 'Solved' : 'Solution: ' + lBestPath.join(' ');
     }
   }
+  position = { x: position[0], y: position[1] };
 
   return (
-    <Html>
-      <div
-        style={{
-          position: 'absolute',
-          top: '100px',
-          left: '-400px',
-          color: 'white',
-          zIndex: '1',
-        }}
-      >
-        {solution}
-      </div>
-    </Html>
+    <InfoPanel text={solution} font="48px Arial" position={position} />
+
   );
 }
-
-
-
 
 export default CubeSolutionInfo;
