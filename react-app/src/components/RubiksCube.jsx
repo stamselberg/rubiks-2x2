@@ -1,7 +1,7 @@
 // RubiksCube.js
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import RubiksCorner from './RubiksCorner.js'
+import RubiksCorner from './RubiksCorner.jsx'
 
 function RubiksCube({ position, border, cubeRotation, cubeId }) {
   const rubiksCubeRef = useRef();

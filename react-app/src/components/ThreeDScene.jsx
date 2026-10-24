@@ -1,9 +1,9 @@
-// src/components/ThreeDScene.js
+// src/components/ThreeDScene.jsx
 import React, { useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { CubeProvider } from './CubeContext.js';
-import CubeSolutionInfo from './CubeSolutionInfo.js';
-import RubiksCube from './RubiksCube.js'
+import { CubeProvider } from './CubeContext.jsx';
+import CubeSolutionInfo from './CubeSolutionInfo.jsx';
+import RubiksCube from './RubiksCube.jsx'
 
 function ThreeDScene() {
 

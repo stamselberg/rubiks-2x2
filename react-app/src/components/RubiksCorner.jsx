@@ -2,7 +2,7 @@
 import React, { useRef } from 'react';
 import { DoubleSide} from 'three';
 import { faceColours, toggleColour } from './colours.js'
-import { useCubeContext } from './CubeContext.js';
+import { useCubeContext } from './CubeContext.jsx';
 
 function RubiksCorner({ cubeId, cornerId, scale, border }) {
 	const rubiksCornerRef = useRef();
