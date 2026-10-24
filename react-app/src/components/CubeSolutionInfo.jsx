@@ -3,7 +3,7 @@ import React from 'react';
 import { useCubeContext } from './CubeContext';
 import { cubeCorners } from './cubedata.js'
 import { solveRubiks2x2 } from './SolveRubiks2x2.js'
-import InfoPanel from './InfoPanel.js'
+import InfoPanel from './InfoPanel.jsx'
 
 // This is where the solution will go. This class needs to analyse
 // the 24 faces, mapping each three to a cube corner (if one exists)

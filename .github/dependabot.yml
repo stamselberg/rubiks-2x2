@@ -1,6 +1,16 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "/" # Location of package manifests
+    directories:
+      - "/"
+      - "/react-app"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    # Security updates only: no routine version-bump PRs
+    open-pull-requests-limit: 0
+    groups:
+      # One pull request for all security fixes, instead of one per package
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
